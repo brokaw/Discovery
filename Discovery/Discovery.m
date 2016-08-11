@@ -164,7 +164,7 @@ static double bgStartTime = 0.0f;
     CBMutableCharacteristic *characteristic =
     [[CBMutableCharacteristic alloc] initWithType:self.uuid
                                        properties:CBCharacteristicPropertyRead
-                                            value:[self.username dataUsingEncoding:NSUTF8StringEncoding]
+                                            value:nil
                                       permissions:CBAttributePermissionsReadable];
     
     // create the service with the characteristics
@@ -183,19 +183,6 @@ static double bgStartTime = 0.0f;
     // we only listen to the service that belongs to our uuid
     // this is important for performance and battery consumption
     [self.centralManager scanForPeripheralsWithServices:services options:scanOptions];
-}
-
-- (void)peripheralManagerDidStartAdvertising:(CBPeripheralManager *)peripheral error:(NSError *)error {
-    
-}
-
-- (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral {
-    if(peripheral.state == CBPeripheralManagerStatePoweredOn) {
-        [self startAdvertising];
-    }
-    else {
-        //NSLog(@"Peripheral manager state: %d", peripheral.state);
-    }
 }
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central
@@ -270,6 +257,32 @@ static double bgStartTime = 0.0f;
 - (BLEUser *)userWithPeripheralId:(NSString *)peripheralId {
     return [self.usersMap valueForKey:peripheralId];
 }
+
+#pragma mark - CBPeripheralManagerDelegate
+
+- (void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveReadRequest:(CBATTRequest *)request
+{
+    request.value = [self.username dataUsingEncoding:NSUTF8StringEncoding];
+    [peripheral respondToRequest:request withResult:CBATTErrorSuccess];
+    UIApplication *application = [UIApplication sharedApplication];
+    UILocalNotification *notification = [[UILocalNotification alloc] init];
+    notification.alertBody = @"Checked In";
+    [application presentLocalNotificationNow:notification];
+}
+
+- (void)peripheralManagerDidStartAdvertising:(CBPeripheralManager *)peripheral error:(NSError *)error {
+
+}
+
+- (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral {
+    if(peripheral.state == CBPeripheralManagerStatePoweredOn) {
+        [self startAdvertising];
+    }
+    else {
+        //NSLog(@"Peripheral manager state: %d", peripheral.state);
+    }
+}
+
 
 #pragma mark - CBCentralManagerDelegate
 
